@@ -1,0 +1,18 @@
+###SERVER###
+erl -sname server -setcookie chat
+chat_server:start_link().
+
+
+###Client1####
+erl -sname bhanuka -setcookie chat
+net_adm:ping('server@LKCOL-Wavenet-RansikaG').
+{ok,Pid1}=chat_client:start_link("bhanuka").
+
+###Client2####
+erl -sname rajith -setcookie chat
+net_adm:ping('server@LKCOL-Wavenet-RansikaG').
+{ok, Pid2}=chat_client:start_link("rajith").
+
+
+###Client1####
+chat_client:send_msg("rajith", "Hi", Pid1).

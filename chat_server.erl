@@ -16,10 +16,10 @@ handle_call({register, Name}, From, State) ->
     {ClientPid, _Tag} = From,
     io:format("The value is: ~p.~n", [From]),  % Print the value for debugging
     Clients = State#state.clients,
-    case gen_fsm:start_link(chat_fsm, [{clients, Clients}, {name, Name}, {client_pid, ClientPid}], []) of
+    case gen_statem:start_link(chat_fsm, [{clients, Clients}, {name, Name}, {client_pid, ClientPid}], []) of
         {ok, Pid} ->
             NewState = State#state{ clients = lists:concat([Clients, [{Name, Pid}]])},
-            lists:foreach(fun({_UserName, UserPid}) -> gen_fsm:send_all_state_event(UserPid, {join, {Name, Pid}}) end, Clients),
+            lists:foreach(fun({_UserName, UserPid}) -> gen_statem:cast(UserPid, {join, {Name, Pid}}) end, Clients),
             {reply, {ok, Pid}, NewState};
         {error, Reason} ->
             io:fwrite("gen_fsm start_link fail Reason : ~p ~n", [Reason]),
