@@ -41,3 +41,11 @@ chat_client:subscribe("Class", Pid1).
 
 ###Client2###
 chat_client:subscribe("Class", Pid2).
+
+
+###Client1####
+chat_client:send_group_msg("Class", "Oii", Pid1).
+
+
+###Client2####
+chat_client:send_group_msg("Class", "Oi back", Pid2).

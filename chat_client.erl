@@ -1,7 +1,7 @@
 -module(chat_client).
 -behaviour(gen_server).
 
--export([start_link/1, send_msg/3, subscribe/2, create_group/2]).
+-export([start_link/1, send_msg/3, subscribe/2, create_group/2, send_group_msg/3]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 -record(state, {handler_pid}).
@@ -33,18 +33,18 @@ subscribe(GroupName, OwnPid) ->
     % gen_server:call({global, chat_group_server}, {subscribe})
     gen_server:call(OwnPid, {subscribe, GroupName}).
 
-% send_group_msg(GroupName, Message, OwnPid) ->
-%     gen_server:call(OwnPid, {send_group_msg, GroupName, Message})
+send_group_msg(GroupName, Message, OwnPid) ->
+    gen_server:call(OwnPid, {send_group_msg, {GroupName, Message}}).
 
 handle_call({send, {Name, Message}}, _From, State) ->
     HandlerPid = State#state.handler_pid,
     Reply = gen_statem:call(HandlerPid, {send, {Name, Message}}),
     {reply, Reply, State};
 
-% handle_call({send_group_msg, {GroupName, Message}}, _From, State) ->
-%     HandlerPid = State#state.handler_pid,
-%     Reply = gen_statem:call(HandlerPid, {send_group_msg, {GroupName, Message}}),
-%     {reply, Reply, State};
+handle_call({send_group_msg, {GroupName, Message}}, _From, State) ->
+    HandlerPid = State#state.handler_pid,
+    Reply = gen_statem:call(HandlerPid, {send_group_msg, {GroupName, Message}}),
+    {reply, Reply, State};
 
 handle_call({recieve, {Sender, Message}}, _From, State) ->
     io:fwrite("~p ~n From: ~p~n",[Message, Sender]),
@@ -54,6 +54,10 @@ handle_call({receive_group_info, GroupName}, _From, State) ->
     io:fwrite("You can subscribe to group : ~p .~n",[GroupName]),
     {reply, ok, State};
 
+handle_call({receive_group_msg, {Group, Message, Sender}}, _From, State) ->
+    io:fwrite("(~p) ~p : ~p .~n",[Group, Sender, Message]),
+    {reply, ok, State};
+    
 handle_call({create_group, GroupName}, _From, State) ->
     {ok, GroupPid} = gen_server:call({global, chat_server}, {create_group, GroupName}),
     io:fwrite("~p : ~p group created.~n",[GroupName, GroupPid]),
