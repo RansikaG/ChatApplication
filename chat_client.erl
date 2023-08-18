@@ -33,14 +33,25 @@ subscribe(GroupName, OwnPid) ->
     % gen_server:call({global, chat_group_server}, {subscribe})
     gen_server:call(OwnPid, {subscribe, GroupName}).
 
+% send_group_msg(GroupName, Message, OwnPid) ->
+%     gen_server:call(OwnPid, {send_group_msg, GroupName, Message})
+
 handle_call({send, {Name, Message}}, _From, State) ->
     HandlerPid = State#state.handler_pid,
-    io:fwrite("Saved Handler Pid: ~p~n",[HandlerPid]),
     Reply = gen_statem:call(HandlerPid, {send, {Name, Message}}),
     {reply, Reply, State};
 
+% handle_call({send_group_msg, {GroupName, Message}}, _From, State) ->
+%     HandlerPid = State#state.handler_pid,
+%     Reply = gen_statem:call(HandlerPid, {send_group_msg, {GroupName, Message}}),
+%     {reply, Reply, State};
+
 handle_call({recieve, {Sender, Message}}, _From, State) ->
     io:fwrite("~p ~n From: ~p~n",[Message, Sender]),
+    {reply, ok, State};
+
+handle_call({receive_group_info, GroupName}, _From, State) ->
+    io:fwrite("You can subscribe to group : ~p .~n",[GroupName]),
     {reply, ok, State};
 
 handle_call({create_group, GroupName}, _From, State) ->

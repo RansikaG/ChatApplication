@@ -44,7 +44,7 @@ handle_event({call,From},{recieve, {SenderName, Message}},connected, State) ->
 
 handle_event(cast,{group_info, {GroupName, GroupPid}}, connected , State) ->
     ClientPid = State#state.client_pid,
-    ClientPid !  {group_info, GroupName, GroupPid},
+    gen_server:call(ClientPid, {receive_group_info, GroupName}),
     AvailableGroups = State#state.available_groups,
     NewState = #state{ client_pid=State#state.client_pid, name = State#state.name, clients = State#state.clients,
     available_groups = lists:concat([AvailableGroups, [{GroupName, GroupPid}]]), subscribed_groups = State#state.subscribed_groups},
@@ -53,8 +53,17 @@ handle_event(cast,{group_info, {GroupName, GroupPid}}, connected , State) ->
 handle_event({call,From},{subscribe, GroupName},connected, State) ->
     GroupPid = proplists:get_value(GroupName, State#state.available_groups),
     Reply = gen_server:call(GroupPid, subscribe),
+    SubscribedGroups = State#state.subscribed_groups,
     % ClientPid !  {recieve, SenderName, Message},
-    {next_state, connected, State,{reply,From,Reply}};
+    NewState = #state{ client_pid=State#state.client_pid, name = State#state.name, clients = State#state.clients,
+    subscribed_groups = lists:concat([SubscribedGroups, [{GroupName, GroupPid}]]), available_groups = State#state.available_groups},
+    {next_state, connected, NewState,{reply,From,Reply}};
+
+% handle_event(cast,{send_group_msg, {GroupName, Message}},connected, State) ->
+%     GroupPid = proplists:get_value(GroupName, State#state.subscribed_groups),
+%     Reply = gen_server:call(GroupPid, {send_msg, Message}),
+%     % ClientPid !  {recieve, SenderName, Message},
+%     {next_state, connected, State,{reply,From,Reply}};
 
 handle_event({call,_From},{_Event, _},connected, State) ->
     {next_state, connected, State}.
