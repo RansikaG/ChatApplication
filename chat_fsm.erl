@@ -4,7 +4,7 @@
 -export([start_link/0]).
 -export([init/1, callback_mode/0, handle_event/4]).
 
--record(state, {clients, client_pid, name}).
+-record(state, {clients, client_pid, name, subscribed_groups}).
 
 start_link() ->
   gen_statem:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -40,6 +40,16 @@ handle_event({call,From},{recieve, {SenderName, Message}},connected, State) ->
     gen_server:call(ClientPid, {recieve, {SenderName, Message}}),
     % ClientPid !  {recieve, SenderName, Message},
     {next_state, connected, State,{reply,From,"Message received"}};
+
+handle_event(cast,{group_info, {GroupName, Pid}}, connected , State) ->
+    ClientPid = State#state.client_pid,
+    ClientPid !  {group_info, GroupName, Pid},
+    {next_state, connected, State};
+
+handle_event({call,From},{subscribe, GroupPid},connected, State) ->
+    Reply = gen_server:call(GroupPid, subscribe),
+    % ClientPid !  {recieve, SenderName, Message},
+    {next_state, connected, State,{reply,From,Reply}};
 
 handle_event({call,_From},{_Event, _},connected, State) ->
     {next_state, connected, State}.

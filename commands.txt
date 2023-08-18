@@ -16,3 +16,22 @@ net_adm:ping('server@LKCOL-Wavenet-RansikaG').
 
 ###Client1####
 chat_client:send_msg("rajith", "Hi", Pid1).
+
+
+##################################GROUP CHAT#####################
+
+###SERVER###
+erl -sname server -setcookie chat
+chat_server:start_link().
+
+###Client1####
+erl -sname bhanuka -setcookie chat
+net_adm:ping('server@LKCOL-Wavenet-RansikaG').
+{ok,Pid1}=chat_client:start_link("bhanuka").
+chat_client:create_group("Class", Pid1).
+
+###Client2####
+erl -sname rajith -setcookie chat
+net_adm:ping('server@LKCOL-Wavenet-RansikaG').
+{ok, Pid2}=chat_client:start_link("rajith").
+chat_client:subscribe("Class",<9886.99.0>, Pid2).
