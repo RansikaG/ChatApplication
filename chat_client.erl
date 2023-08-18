@@ -1,7 +1,7 @@
 -module(chat_client).
 -behaviour(gen_server).
 
--export([start_link/1, send_msg/3, subscribe/3, create_group/2]).
+-export([start_link/1, send_msg/3, subscribe/2, create_group/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 -record(state, {handler_pid}).
@@ -29,9 +29,9 @@ send_msg(Name, Message, OwnPID) ->
 create_group(GroupName, OwnPid) ->
     gen_server:call(OwnPid, {create_group, GroupName}).
 
-subscribe(_Group, GroupPid, OwnPid) ->
+subscribe(GroupName, OwnPid) ->
     % gen_server:call({global, chat_group_server}, {subscribe})
-    gen_server:call(OwnPid, {subscribe, {_Group, GroupPid}}).
+    gen_server:call(OwnPid, {subscribe, GroupName}).
 
 handle_call({send, {Name, Message}}, _From, State) ->
     HandlerPid = State#state.handler_pid,
@@ -48,9 +48,9 @@ handle_call({create_group, GroupName}, _From, State) ->
     io:fwrite("~p : ~p group created.~n",[GroupName, GroupPid]),
     {reply, ok, State};
 
-handle_call({subscribe, {_Group, GroupPid}}, _From, State) ->
+handle_call({subscribe, GroupName}, _From, State) ->
     HandlerPid = State#state.handler_pid,
-    Reply= gen_statem:call(HandlerPid,{subscribe, GroupPid}),
+    Reply= gen_statem:call(HandlerPid,{subscribe, GroupName}),
     {reply, Reply, State}.
 
 handle_cast(_Msg, State) ->

@@ -16,7 +16,8 @@ handle_call({register, Name}, From, State) ->
     {ClientPid, _Tag} = From,
     io:format("Registering Client: ~p....~n", [Name]),  % Print the value for debugging
     Clients = State#state.clients,
-    case gen_statem:start_link(chat_fsm, [{clients, Clients}, {name, Name}, {client_pid, ClientPid}], []) of
+    Groups = State#state.groups,
+    case gen_statem:start_link(chat_fsm, [{clients, Clients}, {name, Name}, {client_pid, ClientPid}, {groups, Groups}], []) of
         {ok, Pid} ->
             NewState = State#state{clients = lists:concat([Clients, [{Name, Pid}]])},
             lists:foreach(fun({_UserName, UserPid}) -> gen_statem:cast(UserPid, {join, {Name, Pid}}) end, Clients),

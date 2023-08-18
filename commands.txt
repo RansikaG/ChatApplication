@@ -28,10 +28,16 @@ chat_server:start_link().
 erl -sname bhanuka -setcookie chat
 net_adm:ping('server@LKCOL-Wavenet-RansikaG').
 {ok,Pid1}=chat_client:start_link("bhanuka").
-chat_client:create_group("Class", Pid1).
+
 
 ###Client2####
 erl -sname rajith -setcookie chat
 net_adm:ping('server@LKCOL-Wavenet-RansikaG').
 {ok, Pid2}=chat_client:start_link("rajith").
-chat_client:subscribe("Class",<9886.99.0>, Pid2).
+
+###Client1###
+chat_client:create_group("Class", Pid1).
+chat_client:subscribe("Class", Pid1).
+
+###Client2###
+chat_client:subscribe("Class", Pid2).

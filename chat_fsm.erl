@@ -4,7 +4,7 @@
 -export([start_link/0]).
 -export([init/1, callback_mode/0, handle_event/4]).
 
--record(state, {clients, client_pid, name, subscribed_groups}).
+-record(state, {clients, client_pid, name, available_groups, subscribed_groups}).
 
 start_link() ->
   gen_statem:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -13,7 +13,8 @@ init(Args) ->
   Clients = proplists:get_value(clients, Args),
   Name = proplists:get_value(name, Args),
   ClientPid = proplists:get_value(client_pid, Args),
-  {ok, connected, #state{clients = Clients, name = Name, client_pid = ClientPid}}.
+  AvailableGroups = proplists:get_value(groups, Args),
+  {ok, connected, #state{clients = Clients, name = Name, client_pid = ClientPid, available_groups = AvailableGroups}}.
 
 callback_mode() ->
     [handle_event_function].
@@ -41,12 +42,16 @@ handle_event({call,From},{recieve, {SenderName, Message}},connected, State) ->
     % ClientPid !  {recieve, SenderName, Message},
     {next_state, connected, State,{reply,From,"Message received"}};
 
-handle_event(cast,{group_info, {GroupName, Pid}}, connected , State) ->
+handle_event(cast,{group_info, {GroupName, GroupPid}}, connected , State) ->
     ClientPid = State#state.client_pid,
-    ClientPid !  {group_info, GroupName, Pid},
-    {next_state, connected, State};
+    ClientPid !  {group_info, GroupName, GroupPid},
+    AvailableGroups = State#state.available_groups,
+    NewState = #state{ client_pid=State#state.client_pid, name = State#state.name, clients = State#state.clients,
+    available_groups = lists:concat([AvailableGroups, [{GroupName, GroupPid}]]), subscribed_groups = State#state.subscribed_groups},
+    {next_state, connected, NewState};
 
-handle_event({call,From},{subscribe, GroupPid},connected, State) ->
+handle_event({call,From},{subscribe, GroupName},connected, State) ->
+    GroupPid = proplists:get_value(GroupName, State#state.available_groups),
     Reply = gen_server:call(GroupPid, subscribe),
     % ClientPid !  {recieve, SenderName, Message},
     {next_state, connected, State,{reply,From,Reply}};
