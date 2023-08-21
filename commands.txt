@@ -42,10 +42,21 @@ chat_client:subscribe("Class", Pid1).
 ###Client2###
 chat_client:subscribe("Class", Pid2).
 
-
 ###Client1####
-chat_client:send_group_msg("Class", "Oii", Pid1).
+chat_client:send_group_msg("Class", "Hi", Pid1).
 
 
 ###Client2####
-chat_client:send_group_msg("Class", "Oi back", Pid2).
+chat_client:send_group_msg("Class", "Hi back", Pid2).
+
+
+####Client3####
+erl -sname ransika -setcookie chat
+net_adm:ping('server@LKCOL-Wavenet-RansikaG').
+{ok, Pid3}=chat_client:start_link("ransika").
+chat_client:subscribe("Class", Pid3).
+chat_client:send_group_msg("Class", "New user here", Pid3).
+
+
+##Client1####
+chat_client:send_group_msg("Class", "Hey new user", Pid1).

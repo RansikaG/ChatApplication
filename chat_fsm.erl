@@ -20,7 +20,8 @@ callback_mode() ->
     [handle_event_function].
 
 handle_event(cast,{join, {Name, Pid}}, connected , State) ->
-    NewState = #state{ client_pid=State#state.client_pid, name = State#state.name, clients = lists:concat([State#state.clients, [{Name, Pid}]])},
+    Clients = State#state.clients,
+    NewState = State#state{clients = lists:concat([Clients,[{Name, Pid}]])},
     {next_state, connected, NewState};
 
 handle_event({call,From},{send,{RecieverName, Message}}, connected, State) ->
@@ -46,8 +47,8 @@ handle_event(cast,{group_info, {GroupName, GroupPid}}, connected , State) ->
     ClientPid = State#state.client_pid,
     gen_server:call(ClientPid, {receive_group_info, GroupName}),
     AvailableGroups = State#state.available_groups,
-    NewState = #state{ client_pid=State#state.client_pid, name = State#state.name, clients = State#state.clients,
-    available_groups = lists:concat([AvailableGroups, [{GroupName, GroupPid}]]), subscribed_groups = State#state.subscribed_groups},
+    NewState = State#state{ available_groups = lists:concat([AvailableGroups, [{GroupName, GroupPid}]])},
+    io:format("New State_callback_group_info:(~p) ~p .~n",[State#state.name, NewState]),
     {next_state, connected, NewState};
 
 handle_event({call,From},{subscribe, GroupName},connected, State) ->
@@ -55,22 +56,38 @@ handle_event({call,From},{subscribe, GroupName},connected, State) ->
     Reply = gen_server:call(GroupPid, subscribe),
     SubscribedGroups = State#state.subscribed_groups,
     % ClientPid !  {recieve, SenderName, Message},
-    NewState = #state{ client_pid=State#state.client_pid, name = State#state.name, clients = State#state.clients,
-    subscribed_groups = lists:concat([SubscribedGroups, [{GroupName, GroupPid}]]), available_groups = State#state.available_groups},
+    NewState = State#state{subscribed_groups = lists:concat([SubscribedGroups, [{GroupName, GroupPid}]])},
+    io:format("New State_callback_subscribe:(~p) ~p .~n",[State#state.name, NewState]),
     {next_state, connected, NewState,{reply,From,Reply}};
 
-handle_event({call,From},{send_group_msg, {GroupName, Message}},connected, State) ->
-    GroupPid = proplists:get_value(GroupName, State#state.subscribed_groups),
-    Reply = gen_server:call(GroupPid, {send_group_msg, {Message, State#state.name}}),
-    {next_state, connected, State,{reply,From,Reply}};
+handle_event({call, From}, {send_group_msg, {GroupName, Message}}, connected, State) ->
+    try
+        io:format("New State_callback_send_group_msg:(~p) ~p .~n",[State#state.name, State]),
+        GroupPid = proplists:get_value(GroupName, State#state.subscribed_groups),
+        Reply = gen_server:call(GroupPid, {send_group_msg, {Message, State#state.name}}),
+        {next_state, connected, State, {reply, From, Reply}}
+    catch
+        error:badarg ->
+            io:format("Error: badarg~n"),
+            {next_state, connected, State, {reply, From, "Bad arg"}};
+        error:MatchError ->
+            io:format("Error: function clause mismatch~n"),
+            {next_state, connected, State, {reply, From, "Cannot send the message"}};
+        _:Error ->
+            io:format("Unknown error: ~p~n", [Error]),
+            {next_state, connected, State, {reply, From, "Unknown Error"}}
+    end;
 
-handle_event(cast,{group_msg, {Group, Message, Sender}}, connected , State) ->
+handle_event(cast, {group_msg, {Group, Message, Sender}}, connected, State) ->
     ClientPid = State#state.client_pid,
     gen_server:call(ClientPid, {receive_group_msg, {Group, Message, Sender}}),
+    io:format("New State_callback_group_msg:(~p) ~p .~n",[State#state.name, State]),
     {next_state, connected, State};
-    
-handle_event({call,_From},{_Event, _},connected, State) ->
+
+handle_event({call, _From}, {_Event, _}, connected, State) ->
+    io:format("New State_callback_any:(~p) ~p .~n",[State#state.name, State]),
     {next_state, connected, State}.
+    
 
 % connected({send,{_RecieverName, _Message}}, connected, State) -> 
 %     {next_state, connected, State}.
